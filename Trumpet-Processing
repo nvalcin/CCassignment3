@@ -1,0 +1,187 @@
+// based on code by CodaSign: http://www.codasign.com/processing-and-twitter/searching-twitter-for-tweets/
+// sound effects:
+   //"Trumpet intro.mp3" from: https://www.youtube.com/watch?v=EehCxlrAL8A
+   //"Trump_everybody-knows.wav" from: https://samplefocus.com/collections/donald-trump-quotes
+   //"Trump_if-i-m-not-right.wav" from: https://samplefocus.com/collections/donald-trump-quotes
+   //"Trump_the-american-dream.wav" from: https://samplefocus.com/collections/donald-trump-quotes
+//Trump photo from : https://fortune.com/2019/05/22/donald-trump-birthday-facebook/
+
+
+import processing.sound.*;
+
+//sync libraries
+import processing.serial.*;
+import controlP5.*;
+import apsync.*;
+
+//twitter libraries
+import twitter4j.*;
+import twitter4j.util.*;
+import twitter4j.util.function.*;
+import twitter4j.auth.*;
+import twitter4j.management.*;
+import twitter4j.json.*;
+import twitter4j.api.*;
+import twitter4j.conf.*;
+import java.util.*;
+
+String serialPort = Serial.list()[3]; //need to match port on computer
+
+//switches
+public int switch1val;
+public int switch2val;
+public int switch3val; 
+
+//accelerometer
+public float speedX;
+public float speedY;
+public float speedZ;
+
+AP_Sync readVals; //create apsync variable to read from   
+
+//Twitter
+Twitter twitter;
+String searchString = "@realdonaldtrump";
+List<Status> tweets;
+int currentTweet;
+
+PImage img;
+SoundFile file1;
+SoundFile file2;
+SoundFile file3;
+SoundFile file4;
+WhiteNoise noise;
+
+long lastTime = millis();
+long updateInterval = 2500;
+
+
+void setup()
+{
+   size(1920, 1080);
+   background(0);
+   img = loadImage("donald-trump-birthday-e1558533939694.jpg");
+   
+   readVals = new AP_Sync(this, serialPort, 9600); //initialize the port and attach it to APsync. port speed must match the arduino side
+    
+   ConfigurationBuilder cb = new ConfigurationBuilder();
+   cb.setOAuthConsumerKey("cq4IadvTS8PR3YaEUqLwJfrLH");
+   cb.setOAuthConsumerSecret("10QSwIbYJrIGTRUuXdchPArDG78fy87RzmbkHicg1fXr7etMTA");
+   cb.setOAuthAccessToken("249701444-Pm4RmjFLyouWMOjF5YTUEetMsQJdF3DhlT26XMpx");
+   cb.setOAuthAccessTokenSecret("u9jeBp1GEm98Cceb91wQt7jshIdui2XrbmnHrFU6cWzuO");
+ 
+   TwitterFactory tf = new TwitterFactory(cb.build());
+ 
+   twitter = tf.getInstance();
+ 
+   getNewTweets();
+ 
+   currentTweet = 0;
+   
+   thread("refreshTweets");
+  
+   image(img, 0, 0);
+   filter(INVERT);
+   
+   file1 = new SoundFile(this, "Trumpet intro.mp3");
+   file2 = new SoundFile(this, "Trump_everybody-knows.wav");
+   file3 = new SoundFile(this, "Trump_if-i-m-not-right.wav");
+   file4 = new SoundFile(this, "Trump_the-american-dream.wav");
+   
+    noise = new WhiteNoise(this);
+    noise.play();
+    noise.amp(0.20);
+}
+
+void draw()
+{
+  fill(0);
+  //rect(0, 0, width, height);
+  //image(img,0,0);
+  
+  if (millis() >= lastTime + updateInterval)
+    {
+    updateTweets();
+    refreshTweets(); 
+    lastTime = millis();
+    }
+else
+{
+  
+if (abs(speedY)>250)
+    {
+       file1.play(); 
+       file1.amp(0.05);
+    }
+    
+ if (switch3val==0)
+    {
+       file2.play();
+       file2.amp(0.40);
+    }
+    
+ if (switch2val==0)
+    {
+    file3.play();
+    file3.amp(0.40);    
+    }
+    
+if (switch1val==0)
+   {
+   file4.play();
+   file4.amp(0.40);
+   }  
+  
+  }
+}
+
+
+void  getNewTweets()
+{
+  try
+  
+  {
+        Query query = new Query(searchString);
+
+        QueryResult result = twitter.search(query);
+
+        tweets = result.getTweets();
+    }
+    catch (TwitterException te)
+    {
+        System.out.println("Failed to search tweets: " + te.getMessage());
+        System.exit(-1);
+    }
+     
+    
+}
+
+void updateTweets()
+{
+  fill(0, 40);
+  rect(0, 0, width, height);
+  image(img, 0, 0);
+  currentTweet = currentTweet + 1;
+      
+if (currentTweet >= tweets.size())
+
+    {
+        currentTweet = 0;
+    }
+
+   Status status = tweets.get(currentTweet);   
+  
+    image(img, 0, 0);
+    filter(INVERT);
+    fill(25);
+    textSize(32);
+    text(status.getText(), random(width-800), random(height-200), 400, 300);
+}  
+      
+
+void refreshTweets()
+{
+        getNewTweets();
+        println("Updated Tweets");
+}
+        
