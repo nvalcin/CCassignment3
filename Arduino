@@ -1,0 +1,77 @@
+//based on code by Nick Puckett
+
+#include <SerialTerminal.h>
+#include <AP_Sync.h>
+#include <Arduino_LSM6DS3.h>
+
+
+AP_Sync sendData (Serial); 
+AP_Sync sendAccel (Serial);
+
+long lastRead;  //using this to measure time since last sensor reading
+
+int switch1val;
+int switch2val;
+int switch3val;
+
+float acX;
+float acY;
+float acZ;
+
+int sendRate = 100;
+long lastSend;
+
+void setup() {
+  //start serial connection
+  Serial.begin(9600);
+
+ if(!IMU.begin())  //initalize the sensor print an error if it doesn't turn on
+  {
+  Serial.println("IMU isn't working....");   
+  }
+
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(13, OUTPUT);
+}
+
+void loop() 
+{
+  // read the switch value
+  switch1val = digitalRead(2);
+ 
+  // read the switch value
+  switch2val = digitalRead(3);
+
+  // read the switch value
+  switch3val = digitalRead(4);
+
+  delay(100); // the delay is necessary for the serial communication
+
+   //sendValue to Processing 
+    sendData.sync("switch1val", switch1val);
+    sendData.sync("switch2val", switch2val);
+    sendData.sync("switch3val", switch3val);
+
+    //data from gyroscope
+ if (IMU.accelerationAvailable()) {
+    IMU.readAcceleration(acX, acY, acZ);
+
+  }
+  if (millis() - lastSend >= sendRate)
+  {
+    sendAccel.sync("speedX", acX*1000);
+    sendAccel.sync("speedY", acY*1000);
+    sendAccel.sync("speedZ", acZ*1000); 
+    lastRead=millis(); //save the time to calculate the readInterval;
+    }
+
+  // Turn on the built in LED any time any of the switches are activated
+  if (switch1val == LOW || switch2val == LOW || switch3val == LOW) 
+  {
+    digitalWrite(13, HIGH);
+  } else {
+    digitalWrite(13, LOW);
+   }
+}
